@@ -2,7 +2,6 @@
 Tests for state management following gold standard patterns.
 """
 
-import pytest
 from src.mcp_server.models.schemas import (
     StateManager,
     TradingPortfolioSchema,
@@ -10,7 +9,7 @@ from src.mcp_server.models.schemas import (
     TradingEntityType,
     EntityRole
 )
-from .conftest import assert_memory_cleared, assert_memory_increased, get_memory_snapshot
+from .conftest import assert_memory_cleared, get_memory_snapshot
 
 class TestStateManager:
     """Test suite for state management."""
@@ -136,7 +135,7 @@ class TestTradingPortfolioSchema:
     
     def test_from_account_data_with_name(self, sample_portfolio_data):
         """Test portfolio creation with custom name."""
-        portfolio = TradingPortfolioSchema.from_account_data(sample_portfolio_data, "test_portfolio")
+        portfolio = TradingPortfolioSchema.from_account_data(sample_portfolio_data, name="test_portfolio")
         assert portfolio.name == "test_portfolio"
     
     def test_add_entity_updates_suggestions(self, sample_portfolio_data, sample_stock_data):

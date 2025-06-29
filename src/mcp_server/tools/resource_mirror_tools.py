@@ -25,7 +25,8 @@ async def resource_account_info() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -59,7 +60,8 @@ async def resource_account_positions() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -94,7 +96,8 @@ async def resource_account_orders() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -131,7 +134,8 @@ async def resource_portfolio_summary() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -165,7 +169,8 @@ async def resource_portfolio_entities() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -202,7 +207,8 @@ async def resource_symbols_active() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -237,7 +243,8 @@ async def resource_symbols_count() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -273,7 +280,8 @@ async def resource_system_health() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -307,7 +315,8 @@ async def resource_system_memory() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {
@@ -341,7 +350,8 @@ async def resource_system_status() -> Dict[str, Any]:
         if "error" in result:
             return {
                 "status": "error",
-                "message": result["error"]
+                "message": result["error"],
+                "error_type": "ResourceError"
             }
         
         return {

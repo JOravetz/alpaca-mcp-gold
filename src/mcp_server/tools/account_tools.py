@@ -141,7 +141,8 @@ async def get_open_position(symbol: str) -> Dict[str, Any]:
         if not symbol:
             return {
                 "status": "error",
-                "message": "Symbol parameter cannot be empty"
+                "message": "Symbol parameter cannot be empty",
+                "error_type": "ValueError"
             }
             
         trading_client = AlpacaClientManager.get_trading_client()

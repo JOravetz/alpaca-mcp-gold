@@ -44,19 +44,22 @@ async def place_market_order(
         if not symbol:
             return {
                 "status": "error",
-                "message": "Symbol parameter cannot be empty"
+                "message": "Symbol parameter cannot be empty",
+                "error_type": "ValueError"
             }
         
         if side.lower() not in ['buy', 'sell']:
             return {
                 "status": "error", 
-                "message": "Side must be 'buy' or 'sell'"
+                "message": "Side must be 'buy' or 'sell'",
+                "error_type": "ValueError"
             }
         
         if quantity <= 0:
             return {
                 "status": "error",
-                "message": "Quantity must be greater than 0"
+                "message": "Quantity must be greater than 0",
+                "error_type": "ValueError"
             }
         
         symbol = symbol.upper()
@@ -163,25 +166,29 @@ async def place_limit_order(
         if not symbol:
             return {
                 "status": "error",
-                "message": "Symbol parameter cannot be empty"
+                "message": "Symbol parameter cannot be empty",
+                "error_type": "ValueError"
             }
         
         if side.lower() not in ['buy', 'sell']:
             return {
                 "status": "error",
-                "message": "Side must be 'buy' or 'sell'"
+                "message": "Side must be 'buy' or 'sell'",
+                "error_type": "ValueError"
             }
         
         if quantity <= 0:
             return {
                 "status": "error",
-                "message": "Quantity must be greater than 0"
+                "message": "Quantity must be greater than 0",
+                "error_type": "ValueError"
             }
         
         if limit_price <= 0:
             return {
                 "status": "error",
-                "message": "Limit price must be greater than 0"
+                "message": "Limit price must be greater than 0",
+                "error_type": "ValueError"
             }
         
         symbol = symbol.upper()
@@ -289,16 +296,20 @@ async def place_stop_loss_order(
     try:
         # Input validation (similar to limit order)
         if not symbol:
-            return {"status": "error", "message": "Symbol parameter cannot be empty"}
+            return {"status": "error", "message": "Symbol parameter cannot be empty",
+                "error_type": "ValueError"}
         
         if side.lower() not in ['buy', 'sell']:
-            return {"status": "error", "message": "Side must be 'buy' or 'sell'"}
+            return {"status": "error", "message": "Side must be 'buy' or 'sell'",
+                "error_type": "ValueError"}
         
         if quantity <= 0:
-            return {"status": "error", "message": "Quantity must be greater than 0"}
+            return {"status": "error", "message": "Quantity must be greater than 0",
+                "error_type": "ValueError"}
         
         if stop_price <= 0:
-            return {"status": "error", "message": "Stop price must be greater than 0"}
+            return {"status": "error", "message": "Stop price must be greater than 0",
+                "error_type": "ValueError"}
         
         symbol = symbol.upper()
         order_side = OrderSide.BUY if side.lower() == 'buy' else OrderSide.SELL
@@ -508,7 +519,8 @@ async def cancel_order(order_id: str) -> Dict[str, Any]:
         if not order_id:
             return {
                 "status": "error",
-                "message": "Order ID parameter cannot be empty"
+                "message": "Order ID parameter cannot be empty",
+                "error_type": "ValueError"
             }
         
         trading_client = AlpacaClientManager.get_trading_client()

@@ -32,7 +32,8 @@ async def get_stock_quote(symbol: str) -> Dict[str, Any]:
         if not symbol:
             return {
                 "status": "error",
-                "message": "Symbol parameter cannot be empty"
+                "message": "Symbol parameter cannot be empty",
+                "error_type": "ValueError"
             }
             
         symbol = symbol.upper()
@@ -108,7 +109,8 @@ async def get_stock_trade(symbol: str) -> Dict[str, Any]:
         if not symbol:
             return {
                 "status": "error",
-                "message": "Symbol parameter cannot be empty"
+                "message": "Symbol parameter cannot be empty",
+                "error_type": "ValueError"
             }
             
         symbol = symbol.upper()
@@ -174,7 +176,8 @@ async def get_stock_snapshot(symbols: str) -> Dict[str, Any]:
         if not symbols:
             return {
                 "status": "error",
-                "message": "Symbols parameter cannot be empty"
+                "message": "Symbols parameter cannot be empty",
+                "error_type": "ValueError"
             }
             
         # Parse comma-separated symbols
@@ -351,7 +354,8 @@ async def get_historical_bars(
         if not symbol:
             return {
                 "status": "error",
-                "message": "Symbol parameter cannot be empty"
+                "message": "Symbol parameter cannot be empty",
+                "error_type": "ValueError"
             }
             
         symbol = symbol.upper()

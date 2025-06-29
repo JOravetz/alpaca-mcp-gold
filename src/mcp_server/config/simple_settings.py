@@ -12,7 +12,7 @@ load_dotenv()
 class Settings:
     """Simple configuration management using environment variables."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         # Alpaca API settings
         self.alpaca_api_key = os.getenv("ALPACA_API_KEY", "")
         self.alpaca_secret_key = os.getenv("ALPACA_SECRET_KEY", "")

@@ -2,13 +2,12 @@
 Custom Trading Strategy Execution Tool
 Implements safe subprocess isolation for custom trading analysis code.
 """
+# ruff: noqa: F821
 
 import asyncio
 import json
 import logging
-from datetime import datetime
 from typing import Dict, Any, Optional
-from ..models.alpaca_clients import AlpacaClientManager
 from ..models.schemas import StateManager
 
 logger = logging.getLogger(__name__)
@@ -251,16 +250,16 @@ try:
     
     # Print context info
     print("=== Trading Strategy Execution Context ===")
-    if portfolio and 'account' in portfolio:
-        account = portfolio['account']
-        print(f"Account Value: ${account.get('portfolio_value', 0):,.2f}")
-        print(f"Buying Power: ${account.get('buying_power', 0):,.2f}")
-        print(f"Positions: {len(portfolio.get('positions', []))}")
+    if 'portfolio' in globals() and portfolio and 'account' in portfolio:  # noqa: F821
+        account = portfolio['account']  # noqa: F821
+        print(f"Account Value: ${account.get('portfolio_value', 0):,.2f}")  # noqa: F821
+        print(f"Buying Power: ${account.get('buying_power', 0):,.2f}")  # noqa: F821
+        print(f"Positions: {len(portfolio.get('positions', []))}")  # noqa: F821
     
-    if market_data:
-        print(f"Market Data: {len(market_data)} symbols loaded")
-        for symbol in market_data.keys():
-            print(f"  - {symbol}")
+    if 'market_data' in globals() and market_data:  # noqa: F821
+        print(f"Market Data: {len(market_data)} symbols loaded")  # noqa: F821
+        for sym in market_data.keys():  # noqa: F821
+            print(f"  - {sym}")  # noqa: F821
     
     print("=" * 45)
     print()
@@ -357,7 +356,7 @@ async def execute_risk_analysis_strategy(
 market_benchmarks = "{market_symbols}".split(',')
 
 print("=== Risk Analysis Strategy ===")
-print(f"Benchmarks: {market_benchmarks}")
+print(f"Benchmarks: {{market_benchmarks}}")
 
 {risk_analysis_code}
 """

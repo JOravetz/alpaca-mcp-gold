@@ -47,3 +47,11 @@ target-version = "py312"
 [tool.mypy]
 python_version = "3.12"
 strict = true
+
+[dependency-groups]
+dev = [
+    "mypy>=1.16.1",
+    "pandas-stubs>=2.2.3.250527",
+    "pytest-asyncio>=1.0.0",
+    "ruff>=0.12.1",
+]

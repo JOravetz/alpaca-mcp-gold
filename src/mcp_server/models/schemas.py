@@ -41,13 +41,13 @@ class EntityInfo(BaseModel):
         volume = data.get('volume', 0)
         market_cap = data.get('market_cap', 0)
         
-        # Determine suggested role based on characteristics
+        # Determine suggested role based on characteristics (prioritize volatility/growth over liquidity)
         if abs(price_change) > 5:
             role = EntityRole.VOLATILE_ASSET
-        elif volume > 1000000 and market_cap > 10000000000:  # High volume, large cap
-            role = EntityRole.LIQUID_ASSET
         elif price_change > 2:
             role = EntityRole.GROWTH_CANDIDATE
+        elif volume > 1000000 and market_cap > 10000000000:  # High volume, large cap
+            role = EntityRole.LIQUID_ASSET
         else:
             role = EntityRole.INCOME_GENERATOR
             
@@ -86,7 +86,7 @@ class EntityInfo(BaseModel):
                 "quantity": qty,
                 "unrealized_pl": unrealized_pl,
                 "market_value": market_value,
-                "position_size": "large" if abs(qty * market_value) > 10000 else "small"
+                "position_size": "large" if abs(market_value) > 10000 else "small"
             },
             suggested_role=role,
             metadata={"last_updated": datetime.now().isoformat()}
@@ -101,7 +101,7 @@ class TradingPortfolioSchema(BaseModel):
     last_updated: datetime = Field(default_factory=datetime.now)
     
     @classmethod
-    def from_account_data(cls, account_data: Dict[str, Any], positions: List[Dict[str, Any]] = None, name: str = "portfolio") -> 'TradingPortfolioSchema':
+    def from_account_data(cls, account_data: Dict[str, Any], positions: Optional[List[Dict[str, Any]]] = None, name: str = "portfolio") -> 'TradingPortfolioSchema':
         """Auto-discover portfolio characteristics from account data and positions."""
         buying_power = float(account_data.get('buying_power', 0))
         portfolio_value = float(account_data.get('portfolio_value', 0))
@@ -137,7 +137,8 @@ class TradingPortfolioSchema(BaseModel):
         
     def _update_suggested_operations(self) -> None:
         """Update suggested operations based on current entities."""
-        operations = []
+        # Start with existing portfolio-level operations, then add entity-specific ones
+        entity_operations = []
         
         # Analyze by entity type
         stocks = [e for e in self.entities.values() if e.entity_type == TradingEntityType.STOCK]
@@ -146,14 +147,17 @@ class TradingPortfolioSchema(BaseModel):
         if len(stocks) > 0:
             volatile_stocks = [s for s in stocks if s.suggested_role == EntityRole.VOLATILE_ASSET]
             if len(volatile_stocks) > len(stocks) * 0.3:
-                operations.append("High volatility detected - consider risk management strategies")
+                entity_operations.append("High volatility detected - consider risk management strategies")
                 
         if len(positions) > 0:
             large_positions = [p for p in positions if p.characteristics.get('position_size') == 'large']
             if len(large_positions) > 3:
-                operations.append("Multiple large positions - consider diversification review")
-                
-        self.suggested_operations = operations
+                entity_operations.append("Multiple large positions - consider diversification review")
+        
+        # Combine existing portfolio-level suggestions with new entity-specific ones
+        # Remove duplicates while preserving order
+        all_operations = list(self.suggested_operations) + entity_operations
+        self.suggested_operations = list(dict.fromkeys(all_operations))
 
 class StateManager:
     """Centralized state management following gold standard patterns."""

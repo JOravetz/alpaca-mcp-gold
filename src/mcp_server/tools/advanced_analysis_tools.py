@@ -5,9 +5,8 @@ Implements sophisticated analysis suggestions and insights following gold standa
 
 import logging
 from typing import Dict, Any, List, Optional
-from datetime import datetime, timedelta
+from datetime import datetime
 from ..models.schemas import StateManager, EntityInfo, TradingPortfolioSchema
-from ..models.alpaca_clients import AlpacaClientManager
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +88,7 @@ def _calculate_diversification_score(portfolio: TradingPortfolioSchema, symbols:
     """Calculate portfolio diversification score and analysis."""
     
     # Analyze entity roles distribution
-    role_distribution = {}
+    role_distribution: dict[str, int] = {}
     for entity in symbols.values():
         role = entity.suggested_role.value
         role_distribution[role] = role_distribution.get(role, 0) + 1
@@ -356,7 +355,7 @@ async def generate_advanced_market_correlation_analysis(symbols: Optional[str] =
             }
         
         # Get market data for symbols
-        from .market_data_tools import get_stock_snapshot, get_historical_bars
+        from .market_data_tools import get_historical_bars
         
         correlation_data = {}
         for symbol in symbol_list:
@@ -423,10 +422,10 @@ def _calculate_returns(prices: List[float]) -> List[float]:
     
     return returns
 
-def _calculate_correlations(correlation_data: Dict[str, Dict]) -> Dict[str, Dict[str, float]]:
+def _calculate_correlations(correlation_data: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
     """Calculate correlation matrix between symbols."""
     symbols = list(correlation_data.keys())
-    correlations = {}
+    correlations: dict[str, dict[str, float]] = {}
     
     for i, symbol1 in enumerate(symbols):
         correlations[symbol1] = {}
@@ -463,7 +462,7 @@ def _pearson_correlation(x: List[float], y: List[float]) -> float:
     if denominator == 0:
         return 0.0
     
-    return numerator / denominator
+    return float(numerator / denominator)
 
 def _find_high_correlations(correlations: Dict[str, Dict[str, float]]) -> List[Dict[str, Any]]:
     """Find pairs with high correlation."""
@@ -499,8 +498,8 @@ def _calculate_correlation_diversification_score(correlations: Dict[str, Dict[st
         diversification_score = 100
     else:
         # Lower score for more highly correlated pairs
-        correlation_ratio = high_corr_pairs / total_pairs
-        diversification_score = max(0, 100 - (correlation_ratio * 60))
+        correlation_ratio = float(high_corr_pairs) / float(total_pairs)
+        diversification_score = max(0.0, 100.0 - (correlation_ratio * 60.0))
     
     return {
         "score": round(diversification_score, 1),
@@ -536,7 +535,7 @@ def _generate_correlation_risk_insights(correlations: Dict[str, Dict[str, float]
     # Check for very high correlations
     very_high = [hc for hc in high_corrs if abs(hc["correlation"]) > 0.9]
     if very_high:
-        insights.append(f"Extremely high correlation detected between some positions (>0.9)")
+        insights.append("Extremely high correlation detected between some positions (>0.9)")
     
     return insights
 

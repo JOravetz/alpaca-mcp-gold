@@ -15,35 +15,40 @@ class AlpacaSettings(BaseSettings):
     """Alpaca API configuration settings."""
     
     # Required Alpaca credentials
-    api_key: str = Field(..., env="ALPACA_API_KEY")
-    secret_key: str = Field(..., env="ALPACA_SECRET_KEY")
-    paper_trade: bool = Field(True, env="ALPACA_PAPER_TRADE")
+    api_key: str = Field(description="Alpaca API key")
+    secret_key: str = Field(description="Alpaca secret key")
+    paper_trade: bool = Field(default=True)
     
     # Optional Alpaca API URLs
-    trade_api_url: Optional[str] = Field(None, env="TRADE_API_URL")
-    trade_api_wss: Optional[str] = Field(None, env="TRADE_API_WSS")
-    data_api_url: Optional[str] = Field(None, env="DATA_API_URL")
-    stream_data_wss: Optional[str] = Field(None, env="STREAM_DATA_WSS")
+    trade_api_url: Optional[str] = Field(default=None)
+    trade_api_wss: Optional[str] = Field(default=None)
+    data_api_url: Optional[str] = Field(default=None)
+    stream_data_wss: Optional[str] = Field(default=None)
     
-    class Config:
-        env_file = ".env"
+    model_config = {"env_file": ".env"}
 
 class MCPSettings(BaseSettings):
     """MCP server configuration settings."""
     
-    server_name: str = Field("alpaca-trading-gold", env="MCP_SERVER_NAME")
+    server_name: str = Field(default="alpaca-trading-gold")
     version: str = "1.0.0"
-    log_level: str = Field("INFO", env="LOG_LEVEL")
+    log_level: str = Field(default="INFO")
     
-    class Config:
-        env_file = ".env"
+    model_config = {"env_file": ".env"}
 
 class Settings:
     """Combined application settings."""
     
-    def __init__(self):
-        # Initialize sub-settings
-        self.alpaca = AlpacaSettings()
+    def __init__(self) -> None:
+        # Initialize sub-settings with required values from env
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        
+        self.alpaca = AlpacaSettings(
+            api_key=os.getenv("ALPACA_API_KEY", ""),
+            secret_key=os.getenv("ALPACA_SECRET_KEY", "")
+        )
         self.mcp = MCPSettings()
     
     # Expose commonly used settings at the top level

@@ -34,17 +34,17 @@ async def get_trading_resource(uri: str) -> Dict[str, Any]:
         # Parse URI
         parsed = urllib.parse.urlparse(uri)
         scheme = parsed.scheme
-        path_parts = parsed.path.strip('/').split('/')
         
         # Validate scheme
         if scheme != "trading":
             return {"error": f"Unsupported scheme: {scheme}. Expected 'trading'"}
-            
-        if len(path_parts) < 2:
-            return {"error": f"Invalid URI path: {parsed.path}. Expected format: trading://category/resource"}
         
-        category = path_parts[0]
-        resource = path_parts[1]
+        # Handle netloc (hostname) as category and path as resource
+        category = parsed.netloc
+        resource = parsed.path.strip('/')
+        
+        if not category or not resource:
+            return {"error": f"Invalid URI format: {uri}. Expected format: trading://category/resource"}
         
         # Route based on category
         if category == "account":
@@ -67,7 +67,7 @@ async def _handle_account_resource(resource: str) -> Dict[str, Any]:
     trading_client = AlpacaClientManager.get_trading_client()
     
     if resource == "info":
-        account = trading_client.get_account()
+        account = trading_client.get_account()  # type: ignore
         return {
             "resource_data": {
                 "account_id": str(account.id),
@@ -85,19 +85,20 @@ async def _handle_account_resource(resource: str) -> Dict[str, Any]:
         }
     
     elif resource == "positions":
-        positions = trading_client.get_all_positions()
+        positions = trading_client.get_all_positions()  # type: ignore
         positions_data = []
         
         for position in positions:
-            positions_data.append({
-                "symbol": position.symbol,
-                "quantity": float(position.qty),
-                "market_value": float(position.market_value),
-                "avg_entry_price": float(position.avg_entry_price),
-                "current_price": float(position.current_price),
-                "unrealized_pl": float(position.unrealized_pl),
-                "unrealized_plpc": float(position.unrealized_plpc)
-            })
+            if hasattr(position, 'symbol'):
+                positions_data.append({
+                    "symbol": position.symbol,
+                    "quantity": float(position.qty),
+                    "market_value": float(position.market_value or 0),
+                    "avg_entry_price": float(position.avg_entry_price or 0),
+                    "current_price": float(position.current_price or 0),
+                    "unrealized_pl": float(position.unrealized_pl or 0),
+                    "unrealized_plpc": float(position.unrealized_plpc or 0)
+                })
         
         return {"resource_data": positions_data}
     
@@ -107,21 +108,22 @@ async def _handle_account_resource(resource: str) -> Dict[str, Any]:
         
         # Get recent orders (last 50)
         orders_request = GetOrdersRequest(status=QueryOrderStatus.ALL, limit=50)
-        orders = trading_client.get_orders(filter=orders_request)
+        orders = trading_client.get_orders(filter=orders_request)  # type: ignore
         
         orders_data = []
         for order in orders:
-            order_data = {
-                "order_id": str(order.id),
-                "symbol": order.symbol,
-                "side": str(order.side).lower(),
-                "order_type": str(order.order_type).lower(),
-                "quantity": float(order.qty),
-                "status": str(order.status),
-                "submitted_at": order.submitted_at.isoformat() if order.submitted_at else None,
-                "filled_qty": float(order.filled_qty) if order.filled_qty else 0
-            }
-            orders_data.append(order_data)
+            if hasattr(order, 'id'):
+                order_data = {
+                    "order_id": str(order.id),
+                    "symbol": order.symbol,
+                    "side": str(order.side).lower(),
+                    "order_type": str(order.order_type).lower(),
+                    "quantity": float(order.qty or 0),
+                    "status": str(order.status),
+                    "submitted_at": order.submitted_at.isoformat() if order.submitted_at else None,
+                    "filled_qty": float(order.filled_qty) if order.filled_qty else 0
+                }
+                orders_data.append(order_data)
         
         return {"resource_data": orders_data}
     

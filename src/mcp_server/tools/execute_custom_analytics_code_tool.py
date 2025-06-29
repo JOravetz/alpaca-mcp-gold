@@ -7,7 +7,7 @@ import asyncio
 import json
 import logging
 import textwrap
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from ..models.schemas import StateManager
 
 logger = logging.getLogger(__name__)
@@ -251,7 +251,7 @@ async def create_sample_dataset_from_portfolio() -> Dict[str, Any]:
                     "unrealized_pnl_percent": float(pos["unrealized_plpc"]) * 100,
                     "current_price": market_data.get("latest_trade", {}).get("price", 0),
                     "daily_change_percent": market_data.get("daily_bar", {}).get("daily_change_percent", 0),
-                    "suggested_role": StateManager.get_symbol(pos["symbol"]).suggested_role.value if StateManager.get_symbol(pos["symbol"]) else "unknown"
+                    "suggested_role": StateManager.get_symbol(pos["symbol"]).suggested_role.value if StateManager.get_symbol(pos["symbol"]) is not None else "unknown"
                 }
                 dataset_rows.append(row)
                 

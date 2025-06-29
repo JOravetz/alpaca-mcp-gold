@@ -11,7 +11,7 @@ class TestTradingResources:
     """Test suite for trading resources."""
     
     @pytest.mark.asyncio
-    async def test_account_info_resource(self, mock_alpaca_clients):
+    async def test_account_info_resource(self, real_api_test):
         """Test trading://account/info resource."""
         result = await get_trading_resource("trading://account/info")
         
@@ -19,12 +19,14 @@ class TestTradingResources:
         assert "resource_data" in result
         
         data = result["resource_data"]
-        assert data["account_id"] == "test_account_123"
-        assert data["buying_power"] == 10000.0
-        assert data["portfolio_value"] == 15000.0
+        assert "account_id" in data
+        assert "buying_power" in data
+        assert "portfolio_value" in data
+        assert isinstance(data["buying_power"], (int, float))
+        assert isinstance(data["portfolio_value"], (int, float))
     
     @pytest.mark.asyncio
-    async def test_account_positions_resource(self, mock_alpaca_clients):
+    async def test_account_positions_resource(self, real_api_test):
         """Test trading://account/positions resource."""
         result = await get_trading_resource("trading://account/positions")
         
@@ -32,12 +34,15 @@ class TestTradingResources:
         assert "resource_data" in result
         
         data = result["resource_data"]
-        assert len(data) == 1
-        assert data[0]["symbol"] == "AAPL"
-        assert data[0]["quantity"] == 100.0
+        assert isinstance(data, list)
+        # Paper account may have 0 or more positions
+        if len(data) > 0:
+            assert "symbol" in data[0]
+            assert "quantity" in data[0]
+            assert isinstance(data[0]["quantity"], (int, float))
     
     @pytest.mark.asyncio
-    async def test_account_orders_resource(self, mock_alpaca_clients):
+    async def test_account_orders_resource(self, real_api_test):
         """Test trading://account/orders resource."""
         result = await get_trading_resource("trading://account/orders")
         
@@ -45,9 +50,11 @@ class TestTradingResources:
         assert "resource_data" in result
         
         data = result["resource_data"]
-        assert len(data) == 1
-        assert data[0]["order_id"] == "order_123"
-        assert data[0]["symbol"] == "AAPL"
+        assert isinstance(data, list)
+        # Paper account may have 0 or more orders
+        if len(data) > 0:
+            assert "order_id" in data[0]
+            assert "symbol" in data[0]
     
     @pytest.mark.asyncio
     async def test_portfolio_summary_resource_no_data(self):
@@ -116,7 +123,7 @@ class TestTradingResources:
         assert data["total_symbols"] == 0  # Initially empty
     
     @pytest.mark.asyncio
-    async def test_system_health_resource(self, mock_alpaca_clients):
+    async def test_system_health_resource(self, real_api_test):
         """Test trading://system/health resource."""
         result = await get_trading_resource("trading://system/health")
         
@@ -142,7 +149,7 @@ class TestTradingResources:
         assert "total_entities" in data
     
     @pytest.mark.asyncio
-    async def test_system_status_resource(self, mock_alpaca_clients):
+    async def test_system_status_resource(self, real_api_test):
         """Test trading://system/status resource."""
         result = await get_trading_resource("trading://system/status")
         
@@ -172,7 +179,7 @@ class TestTradingResources:
         
         assert_resource_response(result)
         assert "error" in result
-        assert "Invalid URI path" in result["error"]
+        assert "Invalid URI format" in result["error"]
     
     @pytest.mark.asyncio
     async def test_unknown_category(self):

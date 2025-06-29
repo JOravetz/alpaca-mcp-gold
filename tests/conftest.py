@@ -1,11 +1,10 @@
 """
-Test configuration and fixtures following gold standard patterns.
-Provides state management and test utilities.
+Test configuration and fixtures for real Alpaca API testing.
+Uses real API calls to Alpaca paper trading environment.
 """
 
 import pytest
 import asyncio
-from unittest.mock import MagicMock, AsyncMock
 from src.mcp_server.models.schemas import StateManager
 from src.mcp_server.models.alpaca_clients import AlpacaClientManager
 
@@ -18,134 +17,6 @@ def clear_state():
     StateManager.clear_all()
     yield
     StateManager.clear_all()
-
-@pytest.fixture
-def mock_trading_client():
-    """Mock Alpaca trading client for testing."""
-    mock_client = MagicMock()
-    
-    # Mock account data
-    mock_account = MagicMock()
-    mock_account.id = "test_account_123"
-    mock_account.status = "ACTIVE"
-    mock_account.currency = "USD"
-    mock_account.buying_power = 10000.0
-    mock_account.cash = 5000.0
-    mock_account.portfolio_value = 15000.0
-    mock_account.equity = 15000.0
-    mock_account.long_market_value = 10000.0
-    mock_account.short_market_value = 0.0
-    mock_account.pattern_day_trader = False
-    mock_account.daytrade_count = 0
-    
-    mock_client.get_account.return_value = mock_account
-    
-    # Mock position data
-    mock_position = MagicMock()
-    mock_position.symbol = "AAPL"
-    mock_position.qty = 100.0
-    mock_position.market_value = 15000.0
-    mock_position.avg_entry_price = 145.0
-    mock_position.current_price = 150.0
-    mock_position.unrealized_pl = 500.0
-    mock_position.unrealized_plpc = 0.0345
-    
-    mock_client.get_all_positions.return_value = [mock_position]
-    mock_client.get_open_position.return_value = mock_position
-    
-    # Mock order data
-    mock_order = MagicMock()
-    mock_order.id = "order_123"
-    mock_order.symbol = "AAPL"
-    mock_order.side = "buy"
-    mock_order.order_type = "market"
-    mock_order.qty = 10.0
-    mock_order.status = "filled"
-    mock_order.time_in_force = "day"
-    mock_order.submitted_at = None
-    mock_order.filled_at = None
-    mock_order.filled_qty = 10.0
-    mock_order.filled_avg_price = 150.0
-    
-    mock_client.submit_order.return_value = mock_order
-    mock_client.get_orders.return_value = [mock_order]
-    
-    return mock_client
-
-@pytest.fixture
-def mock_stock_data_client():
-    """Mock Alpaca stock data client for testing."""
-    mock_client = MagicMock()
-    
-    # Mock quote data
-    mock_quote = MagicMock()
-    mock_quote.bid_price = 149.50
-    mock_quote.ask_price = 149.52
-    mock_quote.bid_size = 100
-    mock_quote.ask_size = 200
-    mock_quote.timestamp = asyncio.get_event_loop().time()
-    
-    mock_client.get_stock_latest_quote.return_value = {"AAPL": mock_quote}
-    
-    # Mock trade data
-    mock_trade = MagicMock()
-    mock_trade.price = 149.51
-    mock_trade.size = 150
-    mock_trade.timestamp = asyncio.get_event_loop().time()
-    mock_trade.exchange = "NASDAQ"
-    mock_trade.conditions = []
-    
-    mock_client.get_stock_latest_trade.return_value = {"AAPL": mock_trade}
-    
-    # Mock snapshot data
-    mock_snapshot = MagicMock()
-    mock_snapshot.latest_quote = mock_quote
-    mock_snapshot.latest_trade = mock_trade
-    
-    # Mock daily bar
-    mock_daily_bar = MagicMock()
-    mock_daily_bar.open = 148.0
-    mock_daily_bar.high = 151.0
-    mock_daily_bar.low = 147.5
-    mock_daily_bar.close = 150.0
-    mock_daily_bar.volume = 50000000
-    mock_daily_bar.timestamp = asyncio.get_event_loop().time()
-    
-    mock_snapshot.daily_bar = mock_daily_bar
-    mock_snapshot.prev_daily_bar = mock_daily_bar
-    
-    mock_client.get_stock_snapshot.return_value = {"AAPL": mock_snapshot}
-    
-    # Mock historical bars
-    mock_bars = [mock_daily_bar] * 10  # 10 bars of historical data
-    mock_client.get_stock_bars.return_value = {"AAPL": mock_bars}
-    
-    return mock_client
-
-@pytest.fixture
-def mock_options_data_client():
-    """Mock Alpaca options data client for testing."""
-    mock_client = MagicMock()
-    return mock_client
-
-@pytest.fixture
-def mock_alpaca_clients(mock_trading_client, mock_stock_data_client, mock_options_data_client):
-    """Mock all Alpaca clients."""
-    # Patch the AlpacaClientManager methods
-    AlpacaClientManager._trading_client = mock_trading_client
-    AlpacaClientManager._stock_data_client = mock_stock_data_client
-    AlpacaClientManager._options_data_client = mock_options_data_client
-    
-    yield {
-        "trading": mock_trading_client,
-        "stock_data": mock_stock_data_client,
-        "options_data": mock_options_data_client
-    }
-    
-    # Reset clients after test
-    AlpacaClientManager._trading_client = None
-    AlpacaClientManager._stock_data_client = None
-    AlpacaClientManager._options_data_client = None
 
 @pytest.fixture
 def sample_portfolio_data():
@@ -221,3 +92,28 @@ def assert_memory_cleared(memory_usage: dict):
     assert memory_usage["portfolios_count"] == 0
     assert memory_usage["symbols_count"] == 0
     assert memory_usage["total_entities"] == 0
+
+# Real API testing helpers
+def skip_if_no_credentials():
+    """Skip test if no valid Alpaca credentials are available."""
+    try:
+        from src.mcp_server.config.simple_settings import settings
+        if not settings.alpaca_api_key or not settings.alpaca_secret_key:
+            pytest.skip("No Alpaca API credentials configured")
+        if settings.alpaca_api_key == "demo_key_please_replace":
+            pytest.skip("Demo credentials detected - real API calls require valid credentials")
+    except Exception as e:
+        pytest.skip(f"Configuration error: {e}")
+
+@pytest.fixture(autouse=True)
+def ensure_paper_trading():
+    """Ensure we're using paper trading environment for safety."""
+    from src.mcp_server.config.simple_settings import settings
+    if not settings.alpaca_paper_trade:
+        pytest.skip("Tests must run in paper trading mode for safety")
+
+@pytest.fixture
+def real_api_test():
+    """Fixture that ensures real API credentials and skips if not available."""
+    skip_if_no_credentials()
+    return True
