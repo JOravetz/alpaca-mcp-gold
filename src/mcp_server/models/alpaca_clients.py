@@ -30,7 +30,7 @@ class AlpacaClientManager:
                 api_key=settings.alpaca_api_key,
                 secret_key=settings.alpaca_secret_key,
                 paper=settings.alpaca_paper_trade,
-                url_override=settings.alpaca.trade_api_url
+                url_override=settings.alpaca_trade_api_url
             )
             logger.info(f"Trading client initialized (paper mode: {settings.alpaca_paper_trade})")
         return cls._trading_client
@@ -43,7 +43,7 @@ class AlpacaClientManager:
             cls._stock_data_client = StockHistoricalDataClient(
                 api_key=settings.alpaca_api_key,
                 secret_key=settings.alpaca_secret_key,
-                url_override=settings.alpaca.data_api_url
+                url_override=settings.alpaca_data_api_url
             )
         return cls._stock_data_client
     
@@ -66,7 +66,7 @@ class AlpacaClientManager:
             cls._stock_stream_client = StockDataStream(
                 api_key=settings.alpaca_api_key,
                 secret_key=settings.alpaca_secret_key,
-                url_override=settings.alpaca.stream_data_wss
+                url_override=settings.alpaca_stream_data_wss
             )
         return cls._stock_stream_client
     

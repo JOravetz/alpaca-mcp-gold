@@ -1,5 +1,5 @@
 """Configuration package for Alpaca MCP server."""
 
-from .settings import settings, AlpacaSettings, MCPSettings
+from .simple_settings import settings
 
-__all__ = ["settings", "AlpacaSettings", "MCPSettings"]
+__all__ = ["settings"]

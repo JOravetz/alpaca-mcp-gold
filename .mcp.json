@@ -6,6 +6,7 @@
         "--directory",
         "/home/jjoravet/mcp_server_best_practices/alpaca-mcp-gold-standard",
         "run",
+        "--no-project",
         "python",
         "main.py"
       ],

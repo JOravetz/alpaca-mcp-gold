@@ -5,7 +5,8 @@ Follows gold standard patterns for environment-based configuration.
 
 import os
 from typing import Optional
-from pydantic import BaseSettings, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -27,7 +28,6 @@ class AlpacaSettings(BaseSettings):
     
     class Config:
         env_file = ".env"
-        env_prefix = "ALPACA_"
 
 class MCPSettings(BaseSettings):
     """MCP server configuration settings."""
@@ -38,13 +38,12 @@ class MCPSettings(BaseSettings):
     
     class Config:
         env_file = ".env"
-        env_prefix = "MCP_"
 
-class Settings(BaseSettings):
+class Settings:
     """Combined application settings."""
     
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self):
+        # Initialize sub-settings
         self.alpaca = AlpacaSettings()
         self.mcp = MCPSettings()
     
