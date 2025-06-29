@@ -4,7 +4,7 @@ Context-aware conversation starters that adapt to portfolio state.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from ..models.schemas import StateManager, TradingEntityType, EntityRole
 
 logger = logging.getLogger(__name__)
@@ -63,7 +63,7 @@ Let me help you analyze your current holdings and explore opportunities:
             prompt_text += "• **Risk Management**: Set stop losses or take profits on existing positions\n"
             
             if portfolio.suggested_operations:
-                prompt_text += f"\n**💡 Recommendations:**\n"
+                prompt_text += "\n**💡 Recommendations:**\n"
                 for suggestion in portfolio.suggested_operations[:3]:
                     prompt_text += f"• {suggestion}\n"
         
@@ -80,7 +80,7 @@ Let's turn this research into actionable portfolio management:
             for symbol, entity in list(symbols.items())[:3]:
                 prompt_text += f"• **{symbol}**: {entity.suggested_role.value.replace('_', ' ').title()}\n"
             
-            prompt_text += f"""
+            prompt_text += """
 **🎯 Next Steps:**
 • **Account Overview**: `get_account_info()` - Check your buying power
 • **Market Data**: `get_stock_snapshot('SYMBOL')` - Get comprehensive data
@@ -117,34 +117,30 @@ Let's turn this research into actionable portfolio management:
 """
         
         return {
-            "name": "portfolio_first_look",
-            "description": "Get started with portfolio analysis and trading guidance",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": {
-                        "type": "text",
-                        "text": prompt_text
-                    }
-                }
-            ]
+            "status": "success",
+            "data": {
+                "prompt": prompt_text,
+                "name": "portfolio_first_look",
+                "description": "Get started with portfolio analysis and trading guidance"
+            },
+            "metadata": {
+                "operation": "portfolio_first_look",
+                "context_aware": True,
+                "entity_count": len(portfolio.entities) if portfolio else 0
+            }
         }
         
     except Exception as e:
         logger.error(f"Error generating portfolio first look prompt: {e}")
         # Fallback to basic prompt
         return {
-            "name": "portfolio_first_look",
-            "description": "Get started with portfolio analysis and trading guidance",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": {
-                        "type": "text",
-                        "text": "Let's start exploring your trading portfolio and market opportunities!"
-                    }
-                }
-            ]
+            "status": "error",
+            "message": f"Error generating prompt: {str(e)}",
+            "data": {
+                "prompt": "Let's start exploring your trading portfolio and market opportunities!",
+                "name": "portfolio_first_look",
+                "description": "Get started with portfolio analysis and trading guidance"
+            }
         }
 
 async def trading_strategy_workshop(strategy_focus: str = "general") -> Dict[str, Any]:
@@ -193,7 +189,7 @@ Let's develop a strategic approach for {strategy_info['focus']}.
             positions = [e for e in portfolio.entities.values() if e.entity_type == TradingEntityType.POSITION]
             portfolio_value = portfolio.portfolio_metrics.get('portfolio_value', 0)
             
-            prompt_text += f"**Your Current Portfolio Context:**\n"
+            prompt_text += "**Your Current Portfolio Context:**\n"
             prompt_text += f"• Portfolio Value: ${portfolio_value:,.2f}\n"
             prompt_text += f"• Active Positions: {len(positions)}\n"
             
@@ -317,33 +313,29 @@ Let's develop a strategic approach for {strategy_info['focus']}.
 What aspect of this {strategy_focus} strategy would you like to explore first?"""
 
         return {
-            "name": f"trading_strategy_{strategy_focus}",
-            "description": f"Strategic guidance for {strategy_focus} trading approach",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": {
-                        "type": "text",
-                        "text": prompt_text
-                    }
-                }
-            ]
+            "status": "success",
+            "data": {
+                "prompt": prompt_text,
+                "name": f"trading_strategy_{strategy_focus}",
+                "description": f"Strategic guidance for {strategy_focus} trading approach"
+            },
+            "metadata": {
+                "operation": "trading_strategy_workshop",
+                "strategy_focus": strategy_focus,
+                "context_aware": True
+            }
         }
         
     except Exception as e:
         logger.error(f"Error generating strategy workshop prompt: {e}")
         return {
-            "name": "trading_strategy_workshop",
-            "description": "Trading strategy guidance and planning",
-            "messages": [
-                {
-                    "role": "user",
-                    "content": {
-                        "type": "text",
-                        "text": "Let's develop a strategic approach to your trading and portfolio management!"
-                    }
-                }
-            ]
+            "status": "error",
+            "message": f"Error generating prompt: {str(e)}",
+            "data": {
+                "prompt": "Let's develop a strategic approach to your trading and portfolio management!",
+                "name": "trading_strategy_workshop",
+                "description": "Trading strategy guidance and planning"
+            }
         }
 
 async def market_analysis_session() -> Dict[str, Any]:
@@ -355,7 +347,7 @@ async def market_analysis_session() -> Dict[str, Any]:
     """
     try:
         symbols = StateManager.get_all_symbols()
-        portfolio = StateManager.get_portfolio()
+        StateManager.get_portfolio()
         
         if symbols and len(symbols) > 0:
             # Provide analysis on tracked symbols

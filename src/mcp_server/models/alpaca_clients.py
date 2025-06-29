@@ -9,7 +9,7 @@ from alpaca.data.historical.option import OptionHistoricalDataClient
 from alpaca.data.historical.stock import StockHistoricalDataClient
 from alpaca.data.live.stock import StockDataStream
 from alpaca.trading.client import TradingClient
-from ..config.settings import settings
+from ..config.simple_settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -90,7 +90,7 @@ class AlpacaClientManager:
             }
             
         try:
-            stock_client = cls.get_stock_data_client()
+            cls.get_stock_data_client()
             # Test with a simple request
             results["stock_data"] = {"status": "healthy"}
         except Exception as e:
@@ -100,7 +100,7 @@ class AlpacaClientManager:
             }
             
         try:
-            options_client = cls.get_options_data_client()
+            cls.get_options_data_client()
             results["options_data"] = {"status": "healthy"}
         except Exception as e:
             results["options_data"] = {

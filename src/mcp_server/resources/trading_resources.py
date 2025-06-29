@@ -203,7 +203,7 @@ async def _handle_system_resource(resource: str) -> Dict[str, Any]:
         return {"resource_data": memory_usage}
     
     elif resource == "status":
-        from ..config.settings import settings
+        from ..config.simple_settings import settings
         
         status_data = {
             "server_name": settings.server_name,

@@ -3,8 +3,8 @@ Data models and schemas for Alpaca MCP server.
 Follows gold standard adaptive discovery patterns.
 """
 
-from datetime import datetime, date
-from typing import Dict, List, Optional, Any, Union
+from datetime import datetime
+from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -101,11 +101,11 @@ class TradingPortfolioSchema(BaseModel):
     last_updated: datetime = Field(default_factory=datetime.now)
     
     @classmethod
-    def from_account_data(cls, account_data: Dict[str, Any], name: str = "portfolio") -> 'TradingPortfolioSchema':
-        """Auto-discover portfolio characteristics from account data."""
+    def from_account_data(cls, account_data: Dict[str, Any], positions: List[Dict[str, Any]] = None, name: str = "portfolio") -> 'TradingPortfolioSchema':
+        """Auto-discover portfolio characteristics from account data and positions."""
         buying_power = float(account_data.get('buying_power', 0))
         portfolio_value = float(account_data.get('portfolio_value', 0))
-        equity = float(account_data.get('equity', 0))
+        equity = float(account_data.get('equity', portfolio_value))
         
         # Generate suggested operations based on portfolio state
         suggested_ops = []
@@ -113,6 +113,10 @@ class TradingPortfolioSchema(BaseModel):
             suggested_ops.append("Consider deploying excess cash in diversified positions")
         if equity > portfolio_value * 0.9:
             suggested_ops.append("Portfolio is well-capitalized for growth strategies")
+        if positions and len(positions) > 10:
+            suggested_ops.append("Consider consolidating positions for better management")
+        elif positions and len(positions) < 3:
+            suggested_ops.append("Consider diversifying across more positions")
             
         return cls(
             name=name,
@@ -120,17 +124,18 @@ class TradingPortfolioSchema(BaseModel):
                 "buying_power": buying_power,
                 "portfolio_value": portfolio_value,
                 "equity": equity,
-                "cash_allocation": buying_power / portfolio_value if portfolio_value > 0 else 0
+                "cash_allocation": buying_power / portfolio_value if portfolio_value > 0 else 0,
+                "position_count": len(positions) if positions else 0
             },
             suggested_operations=suggested_ops
         )
     
-    def add_entity(self, entity: EntityInfo):
+    def add_entity(self, entity: EntityInfo) -> None:
         """Add a trading entity to the portfolio."""
         self.entities[entity.name] = entity
         self._update_suggested_operations()
         
-    def _update_suggested_operations(self):
+    def _update_suggested_operations(self) -> None:
         """Update suggested operations based on current entities."""
         operations = []
         
@@ -162,12 +167,12 @@ class StateManager:
         return cls._portfolios.get(name)
     
     @classmethod
-    def set_portfolio(cls, portfolio: TradingPortfolioSchema, name: str = "default"):
+    def set_portfolio(cls, portfolio: TradingPortfolioSchema, name: str = "default") -> None:
         """Store portfolio."""
         cls._portfolios[name] = portfolio
         
     @classmethod
-    def add_symbol(cls, symbol: str, entity_info: EntityInfo):
+    def add_symbol(cls, symbol: str, entity_info: EntityInfo) -> None:
         """Add symbol information."""
         cls._active_symbols[symbol] = entity_info
         
@@ -182,7 +187,7 @@ class StateManager:
         return cls._active_symbols.copy()
         
     @classmethod
-    def clear_all(cls):
+    def clear_all(cls) -> None:
         """Clear all state - ESSENTIAL for testing."""
         cls._portfolios.clear()
         cls._active_symbols.clear()

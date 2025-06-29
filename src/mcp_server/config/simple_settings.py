@@ -29,7 +29,7 @@ class Settings:
         self.log_level = os.getenv("LOG_LEVEL", "INFO")
         self.version = "1.0.0"
 
-    def validate(self):
+    def validate(self) -> None:
         """Validate that required settings are available."""
         missing = []
         

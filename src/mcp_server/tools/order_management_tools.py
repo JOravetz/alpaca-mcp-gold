@@ -4,19 +4,15 @@ Handles order placement, modification, and tracking.
 """
 
 import logging
-from typing import Dict, Any, Optional, List
-from decimal import Decimal
+from typing import Optional, List, Dict, Any
 from alpaca.trading.requests import (
     MarketOrderRequest,
     LimitOrderRequest,
     StopOrderRequest,
-    StopLimitOrderRequest,
-    TrailingStopOrderRequest,
     GetOrdersRequest
 )
 from alpaca.trading.enums import (
     OrderSide,
-    OrderType,
     TimeInForce,
     QueryOrderStatus
 )

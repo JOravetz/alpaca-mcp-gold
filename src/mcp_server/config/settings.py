@@ -3,7 +3,6 @@ Configuration management for Alpaca MCP server.
 Follows gold standard patterns for environment-based configuration.
 """
 
-import os
 from typing import Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings

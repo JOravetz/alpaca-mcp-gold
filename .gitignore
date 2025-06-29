@@ -85,3 +85,10 @@ Thumbs.db
 *.log
 outputs/
 data/temp/
+.env.local
+.env.production
+config/local.json
+
+# Temporary development files
+fix_types.py
+generate_report.py
