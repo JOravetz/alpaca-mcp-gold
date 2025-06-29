@@ -1,7 +1,11 @@
 {
   "mcpServers": {
     "alpaca-trading-gold": {
-      "command": "/home/jjoravet/mcp_server_best_practices/alpaca-mcp-gold-standard/start_server.sh"
+      "command": "uv",
+      "args": ["--directory", "/home/jjoravet/mcp_server_best_practices/alpaca-mcp-gold-standard", "run", "python", "main.py"],
+      "env": {
+        "LOG_LEVEL": "INFO"
+      }
     }
   }
 }
