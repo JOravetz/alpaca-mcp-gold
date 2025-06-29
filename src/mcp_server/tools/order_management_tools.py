@@ -17,7 +17,7 @@ from alpaca.trading.enums import (
     QueryOrderStatus
 )
 from ..models.alpaca_clients import AlpacaClientManager
-from ..models.schemas import StateManager, EntityInfo, TradingEntityType
+from ..models.schemas import StateManager, EntityInfo, TradingEntityType, EntityRole
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +105,7 @@ async def place_market_order(
                 "quantity": quantity,
                 "status": str(order.status)
             },
-            suggested_role=EntityInfo.EntityRole.SPECULATIVE,
+            suggested_role=EntityRole.SPECULATIVE,
             metadata={"order_id": str(order.id)}
         )
         StateManager.add_symbol(f"order_{order.id}", order_info)
@@ -236,7 +236,7 @@ async def place_limit_order(
                 "limit_price": limit_price,
                 "status": str(order.status)
             },
-            suggested_role=EntityInfo.EntityRole.SPECULATIVE,
+            suggested_role=EntityRole.SPECULATIVE,
             metadata={"order_id": str(order.id)}
         )
         StateManager.add_symbol(f"order_{order.id}", order_info)
@@ -354,7 +354,7 @@ async def place_stop_loss_order(
                 "stop_price": stop_price,
                 "status": str(order.status)
             },
-            suggested_role=EntityInfo.EntityRole.HEDGE_INSTRUMENT,
+            suggested_role=EntityRole.HEDGE_INSTRUMENT,
             metadata={"order_id": str(order.id)}
         )
         StateManager.add_symbol(f"order_{order.id}", order_info)

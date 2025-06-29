@@ -87,19 +87,27 @@ async def execute_custom_trading_strategy(
         str: Combined stdout and stderr output from code execution
     """
     try:
+        logger.info("Starting custom strategy execution")
+        
         # Step 1: Gather execution context
+        logger.info("Gathering trading context...")
         execution_context = await _gather_trading_context(symbols, portfolio_context)
+        logger.info(f"Context gathered: portfolio={bool(execution_context.get('portfolio'))}, market_data={bool(execution_context.get('market_data'))}")
         
         # Step 2: Create execution template
+        logger.info("Creating execution template...")
         execution_code = _create_execution_template(strategy_code, execution_context)
+        logger.info("Template created successfully")
         
         # Step 3: Execute in subprocess
+        logger.info("Executing in subprocess...")
         result = await _execute_in_subprocess(execution_code)
+        logger.info("Subprocess execution completed")
         
         return result
         
     except Exception as e:
-        logger.error(f"Error in custom strategy execution: {e}")
+        logger.error(f"Error in custom strategy execution: {e}", exc_info=True)
         return f"EXECUTION ERROR: {type(e).__name__}: {str(e)}"
 
 async def _gather_trading_context(symbols: Optional[str], include_portfolio: bool) -> Dict[str, Any]:
@@ -184,14 +192,30 @@ async def _gather_trading_context(symbols: Optional[str], include_portfolio: boo
 def _create_execution_template(user_code: str, context: Dict[str, Any]) -> str:
     """Create safe execution template with trading context."""
     
-    # Serialize context data
-    portfolio_json = json.dumps(context.get("portfolio", {}), default=str)
-    market_data_json = json.dumps(context.get("market_data", {}), default=str)
+    # Convert context data to proper Python representation
+    # First serialize to JSON to handle complex objects, then parse back to get proper Python types
+    import json
+    
+    def safe_repr(obj):
+        """Safely convert object to Python representation, handling mixed types."""
+        # Convert to JSON string and back to ensure consistent types
+        json_str = json.dumps(obj, default=str)
+        # Replace JSON boolean literals with Python equivalents
+        json_str = json_str.replace(': true', ': True').replace(': false', ': False').replace(': null', ': None')
+        # For the start of values too
+        json_str = json_str.replace('[true', '[True').replace('[false', '[False').replace('[null', '[None')
+        json_str = json_str.replace('{true', '{True').replace('{false', '{False').replace('{null', '{None')
+        # Convert back using eval (safe because we control the input)
+        python_obj = eval(json_str)
+        return repr(python_obj)
+    
+    portfolio_repr = safe_repr(context.get("portfolio", {}))
+    market_data_repr = safe_repr(context.get("market_data", {}))
     
     # Indent user code for proper execution
     indented_user_code = '\n'.join('    ' + line for line in user_code.split('\n'))
     
-    execution_template = f'''
+    execution_template = '''
 import pandas as pd
 import numpy as np
 import json
@@ -200,12 +224,17 @@ from typing import Dict, Any, List
 
 try:
     # Load trading context
-    portfolio_data = {portfolio_json}
-    market_data_raw = {market_data_json}
+    portfolio_data = {portfolio_repr}
+    market_data_raw = {market_data_repr}
     
     # Make data easily accessible
     portfolio = portfolio_data
     market_data = market_data_raw
+    
+    # Always define account variable to prevent NameError
+    account = dict()
+    if portfolio and 'account' in portfolio:
+        account = portfolio['account']
     
     # Helper functions for common calculations
     def calculate_portfolio_value(positions):
@@ -250,48 +279,63 @@ try:
     
     # Print context info
     print("=== Trading Strategy Execution Context ===")
-    if 'portfolio' in globals() and portfolio and 'account' in portfolio:  # noqa: F821
-        account = portfolio['account']  # noqa: F821
-        print(f"Account Value: ${account.get('portfolio_value', 0):,.2f}")  # noqa: F821
-        print(f"Buying Power: ${account.get('buying_power', 0):,.2f}")  # noqa: F821
-        print(f"Positions: {len(portfolio.get('positions', []))}")  # noqa: F821
     
-    if 'market_data' in globals() and market_data:  # noqa: F821
-        print(f"Market Data: {len(market_data)} symbols loaded")  # noqa: F821
-        for sym in market_data.keys():  # noqa: F821
-            print(f"  - {sym}")  # noqa: F821
+    if portfolio and 'account' in portfolio:
+        print("Account Value: $" + str(account.get('portfolio_value', 0)))
+        print("Buying Power: $" + str(account.get('buying_power', 0)))
+        print("Positions: " + str(len(portfolio.get('positions', []))))
+    else:
+        print("No portfolio context available")
+    
+    if market_data:
+        print("Market Data: " + str(len(market_data)) + " symbols loaded")
+        for sym in market_data.keys():
+            print("  - " + str(sym))
     
     print("=" * 45)
     print()
     
     # Execute user strategy code
-{indented_user_code}
+{user_code}
     
 except Exception as e:
-    print(f"ERROR: {{type(e).__name__}}: {{str(e)}}")
+    print("ERROR: " + type(e).__name__ + ": " + str(e))
     import traceback
     print("Traceback:")
     print(traceback.format_exc())
-'''
+'''.format(
+        portfolio_repr=portfolio_repr,
+        market_data_repr=market_data_repr,
+        user_code=indented_user_code
+    )
     
     return execution_template
 
 async def _execute_in_subprocess(execution_code: str) -> str:
     """Execute code in isolated subprocess with timeout."""
     try:
+        # Debug: Save execution code to temp file for debugging
+        with open('/tmp/strategy_debug.py', 'w') as f:
+            f.write(execution_code)
+        
         # Execute subprocess with trading libraries available
         process = await asyncio.create_subprocess_exec(
             'uv', 'run', '--with', 'pandas', '--with', 'numpy', 
             'python', '-c', execution_code,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
+            stderr=asyncio.subprocess.PIPE,
             cwd='/home/jjoravet/mcp_server_best_practices/alpaca-mcp-gold-standard'
         )
         
         # Wait for completion with timeout
         try:
-            stdout, _ = await asyncio.wait_for(process.communicate(), timeout=30)
-            return stdout.decode('utf-8', errors='replace')
+            stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
+            result = stdout.decode('utf-8', errors='replace')
+            if stderr:
+                error_output = stderr.decode('utf-8', errors='replace')
+                if error_output.strip():
+                    result += "\n--- STDERR ---\n" + error_output
+            return result
         except asyncio.TimeoutError:
             # Kill the process if it times out
             process.kill()
