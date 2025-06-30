@@ -194,7 +194,6 @@ def _create_execution_template(user_code: str, context: Dict[str, Any]) -> str:
     
     # Convert context data to proper Python representation
     # First serialize to JSON to handle complex objects, then parse back to get proper Python types
-    import json
     
     def safe_repr(obj):
         """Safely convert object to Python representation, handling mixed types."""

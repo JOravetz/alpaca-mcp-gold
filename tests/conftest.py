@@ -6,7 +6,6 @@ Uses real API calls to Alpaca paper trading environment.
 import pytest
 import asyncio
 from src.mcp_server.models.schemas import StateManager
-from src.mcp_server.models.alpaca_clients import AlpacaClientManager
 
 @pytest.fixture(autouse=True)
 def clear_state():
