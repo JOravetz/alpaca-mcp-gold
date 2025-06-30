@@ -5,7 +5,40 @@ Uses real API calls to Alpaca paper trading environment.
 
 import pytest
 import asyncio
+import logging
 from src.mcp_server.models.schemas import StateManager
+
+logger = logging.getLogger(__name__)
+
+
+async def cancel_all_orders():
+    """
+    Cancel all pending orders for test cleanup.
+    Ensures no orders are left hanging after test runs.
+    """
+    try:
+        from src.mcp_server.tools.order_management_tools import get_orders, cancel_order
+        
+        # Get all open orders
+        orders_result = await get_orders(status="open")
+        
+        if orders_result["status"] == "success" and orders_result["data"]["orders"]:
+            order_ids = [order["order_id"] for order in orders_result["data"]["orders"]]
+            
+            logger.info(f"Cancelling {len(order_ids)} pending orders during test cleanup")
+            
+            # Cancel each order
+            for order_id in order_ids:
+                cancel_result = await cancel_order(order_id)
+                if cancel_result["status"] == "success":
+                    logger.info(f"Successfully cancelled order {order_id}")
+                else:
+                    logger.warning(f"Failed to cancel order {order_id}: {cancel_result.get('message', 'Unknown error')}")
+        else:
+            logger.info("No pending orders found during cleanup")
+            
+    except Exception as e:
+        logger.warning(f"Error during order cleanup: {e}")
 
 
 @pytest.fixture(autouse=True)
@@ -138,3 +171,38 @@ def real_api_test():
     """Fixture that ensures real API credentials and skips if not available."""
     skip_if_no_credentials()
     return True
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_orders_after_all_tests():
+    """
+    Session-scoped fixture to clean up orders after all tests complete.
+    Automatically cancels any pending orders at the end of the test session.
+    """
+    yield  # Let all tests run first
+    
+    # After all tests are done, clean up any remaining orders
+    try:
+        # Run the cleanup in an event loop
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(cancel_all_orders())
+        loop.close()
+        logger.info("✅ Order cleanup completed after test session")
+    except Exception as e:
+        logger.error(f"❌ Error during final order cleanup: {e}")
+
+
+@pytest.fixture(scope="function")
+def order_cleanup():
+    """
+    Function-scoped fixture for tests that create orders.
+    Provides immediate cleanup after individual tests.
+    """
+    yield
+    # Clean up any orders created during this specific test
+    try:
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(cancel_all_orders())
+    except Exception as e:
+        logger.warning(f"Error during test-specific order cleanup: {e}")

@@ -19,12 +19,13 @@ uv run python main.py
 LOG_LEVEL=DEBUG uv run python main.py
 
 # Testing (Real API Integration)
-uv run python -m pytest tests/ -v          # 91 tests using real Alpaca API
+uv run python -m pytest tests/ -v          # 95+ tests using real Alpaca API
 uv run python -m pytest tests/test_account_tools.py -v
 uv run python -m pytest tests/ -v --cov=src
 
 # All tests use real Alpaca API in paper trading mode
 # No mocks - maximum confidence in actual functionality
+# Automatic order cleanup ensures no pending orders after test runs
 
 # Code quality
 uv run black src/ tests/
@@ -188,7 +189,20 @@ async def test_your_feature(real_api_test):
     
     # Tests automatically handle varying real API responses
     # No hardcoded values - flexible assertions for real data
+
+@pytest.mark.asyncio
+async def test_order_operations(real_api_test, order_cleanup):
+    # Use order_cleanup fixture for tests that create orders
+    order_result = await place_market_order("AAPL", "buy", 1)
+    # Test order logic here...
+    # Orders automatically cancelled after test completes
 ```
+
+### Automatic Order Cleanup
+- **Session-level cleanup**: All pending orders cancelled after test suite completes
+- **Test-level cleanup**: Use `order_cleanup` fixture for immediate cleanup after individual tests
+- **Safety mechanism**: Prevents accidental order accumulation during testing
+- **Logging**: Comprehensive logging of cleanup actions for debugging
 
 ## Configuration Management
 
