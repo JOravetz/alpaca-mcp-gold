@@ -201,12 +201,12 @@ class TestAccountTools:
             assert "position" in data["entity_breakdown"]
 
     @pytest.mark.asyncio
-    async def test_get_portfolio_summary_no_data(self):
+    async def test_get_portfolio_summary_no_data(self, real_api_test):
         """Test portfolio summary with no existing data."""
-        # Mock account info call to fail initialization
+        # Should succeed after initializing account data from real API
         result = await get_portfolio_summary()
 
-        # Should still succeed after initializing account data
+        # Should succeed after initializing account data
         assert_success_response(result)
 
     @pytest.mark.asyncio
