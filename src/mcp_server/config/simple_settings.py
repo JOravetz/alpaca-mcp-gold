@@ -14,9 +14,9 @@ class Settings:
     """Simple configuration management using environment variables."""
 
     def __init__(self) -> None:
-        # Alpaca API settings
-        self.alpaca_api_key = os.getenv("ALPACA_API_KEY", "")
-        self.alpaca_secret_key = os.getenv("ALPACA_SECRET_KEY", "")
+        # Alpaca API settings - use same env vars as working script
+        self.alpaca_api_key = os.getenv("APCA_API_KEY_ID", os.getenv("ALPACA_API_KEY", ""))
+        self.alpaca_secret_key = os.getenv("APCA_API_SECRET_KEY", os.getenv("ALPACA_SECRET_KEY", ""))
         self.alpaca_paper_trade = (
             os.getenv("ALPACA_PAPER_TRADE", "True").lower() == "true"
         )
@@ -37,10 +37,10 @@ class Settings:
         missing = []
 
         if not self.alpaca_api_key:
-            missing.append("ALPACA_API_KEY")
+            missing.append("APCA_API_KEY_ID or ALPACA_API_KEY")
 
         if not self.alpaca_secret_key:
-            missing.append("ALPACA_SECRET_KEY")
+            missing.append("APCA_API_SECRET_KEY or ALPACA_SECRET_KEY")
 
         if missing:
             raise ValueError(

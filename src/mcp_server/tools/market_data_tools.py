@@ -4,6 +4,7 @@ Handles stock quotes, historical data, and market information.
 """
 
 import logging
+import requests
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from alpaca.data.requests import (
@@ -15,6 +16,7 @@ from alpaca.data.requests import (
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from ..models.alpaca_clients import AlpacaClientManager
 from ..models.schemas import StateManager, EntityInfo
+from ..config.simple_settings import settings
 
 logger = logging.getLogger(__name__)
 
@@ -357,6 +359,7 @@ async def get_historical_bars(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     limit: int = 100,
+    feed: str = "sip",
 ) -> Dict[str, Any]:
     """
     Retrieves historical bar data for a stock.
@@ -398,75 +401,94 @@ async def get_historical_bars(
 
         tf = timeframe_mapping[timeframe]
 
-        # Set default dates if not provided
-        # Use December 2024 as a safe historical period regardless of system date
+        # Set default dates - use correct business day logic
+        now = datetime.now()
+        
         if not end_date:
-            end_date = datetime(2024, 12, 20).date()  # Known good historical date
+            # For end date, use the most recent business day (not future dates)
+            # Monday = 0, Sunday = 6
+            weekday = now.weekday()
+            if weekday == 6:  # Sunday
+                end_date_obj = now - timedelta(days=2)  # Friday
+            elif weekday == 5:  # Saturday  
+                end_date_obj = now - timedelta(days=1)  # Friday
+            else:  # Monday-Friday
+                end_date_obj = now
+            end_date_str = end_date_obj.strftime("%Y-%m-%d")
         else:
-            end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+            end_date_str = end_date
 
         if not start_date:
-            # Default to appropriate days back for timeframe
-            days_back = 30 if timeframe == "1Day" else 7
-            start_date = end_date - timedelta(days=days_back)
+            # For intraday data, use same business day as end date
+            if timeframe in ["1Min", "5Min", "15Min", "1Hour"]:
+                start_date_str = end_date_str  # Same day for intraday
+            else:
+                # For daily data, go back appropriate business days from end date
+                days_back = 30
+                start_date_obj = datetime.strptime(end_date_str, "%Y-%m-%d") - timedelta(days=days_back)
+                start_date_str = start_date_obj.strftime("%Y-%m-%d")
         else:
-            start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-
-        # For any dates after 2024, use 2024 data instead to avoid future date issues
-        current_year = datetime.now().year
-        if current_year >= 2025:
-            if end_date.year >= 2025:
-                # Map to equivalent 2024 date
-                end_date = datetime(2024, 12, 20).date()
-            if start_date.year >= 2025:
-                start_date = end_date - timedelta(days=30 if timeframe == "1Day" else 7)
+            start_date_str = start_date
 
         # Validate limit
         limit = max(1, min(limit, 10000))
 
-        stock_client = AlpacaClientManager.get_stock_data_client()
+        # Use direct API call like your working script instead of SDK
+        url = "https://data.alpaca.markets/v2/stocks/bars"
+        params = {
+            'symbols': symbol,
+            'timeframe': timeframe,  # Use original timeframe string
+            'start': start_date_str,
+            'end': end_date_str,
+            'limit': limit,
+            'adjustment': 'split',
+            'feed': feed,
+            'sort': 'desc'  # Most recent first
+        }
 
-        # Get historical bars
-        bars_request = StockBarsRequest(
-            symbol_or_symbols=[symbol],
-            timeframe=tf,
-            start=start_date,
-            end=end_date,
-            limit=limit,
-        )
-        bars = stock_client.get_stock_bars(bars_request)
-
-        # Access data through the .data attribute
-        if not hasattr(bars, "data") or symbol not in bars.data:
+        headers = {
+            'APCA-API-KEY-ID': settings.alpaca_api_key,
+            'APCA-API-SECRET-KEY': settings.alpaca_secret_key
+        }
+        
+        logger.info(f"Requesting bars for {symbol} from {start_date_str} to {end_date_str} via direct API")
+        
+        try:
+            response = requests.get(url, params=params, headers=headers)
+            response.raise_for_status()
+            api_data = response.json()
+            
+            # Extract bars for the symbol
+            all_bars_raw = api_data.get('bars', {}).get(symbol, [])
+            
+            if not all_bars_raw:
+                return {
+                    "status": "error",
+                    "message": f"No trading data available for {symbol} in the requested date range {start_date_str} to {end_date_str}. Try a different date range or check if the symbol is correct.",
+                }
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error fetching bars via direct API: {e}")
             return {
                 "status": "error",
-                "message": f"No historical data found for symbol {symbol} between {start_date} and {end_date}. Symbol may not exist or no trading occurred in this period.",
-            }
-
-        symbol_bars = bars.data[symbol]
-
-        if not symbol_bars:
-            return {
-                "status": "error",
-                "message": f"No trading data available for {symbol} in the requested date range {start_date} to {end_date}. Try a different date range or check if the symbol is correct.",
+                "message": f"Failed to retrieve historical bars for {symbol}: {str(e)}",
+                "error_type": type(e).__name__,
             }
 
         bars_data = []
 
-        for bar in symbol_bars:
-            # Bars are Bar objects with attribute access
+        for bar in all_bars_raw:
+            # Raw API data - convert from your script's format
             bars_data.append(
                 {
-                    "timestamp": bar.timestamp.isoformat(),
-                    "open": float(bar.open),
-                    "high": float(bar.high),
-                    "low": float(bar.low),
-                    "close": float(bar.close),
-                    "volume": int(bar.volume),
-                    "trade_count": getattr(bar, "trade_count", None),
-                    "vwap": (
-                        float(getattr(bar, "vwap", 0)) if hasattr(bar, "vwap") else None
-                    ),
+                    "timestamp": bar["t"],  # timestamp in ISO format from API
+                    "open": float(bar["o"]),
+                    "high": float(bar["h"]),
+                    "low": float(bar["l"]),
+                    "close": float(bar["c"]),
+                    "volume": int(bar["v"]),
+                    "trade_count": bar.get("n"),
+                    "vwap": float(bar.get("vw", 0)) if bar.get("vw") else None,
                 }
             )
 
@@ -510,8 +532,8 @@ async def get_historical_bars(
                 "request_params": {
                     "symbol": symbol,
                     "timeframe": timeframe,
-                    "start_date": start_date.isoformat(),
-                    "end_date": end_date.isoformat(),
+                    "start_date": start_date_str,
+                    "end_date": end_date_str,
                     "limit": limit,
                 },
             },
