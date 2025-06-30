@@ -11,7 +11,7 @@ from src.mcp_server.tools.resource_mirror_tools import (
     resource_symbols_count,
     resource_system_health,
     resource_system_memory,
-    resource_system_status
+    resource_system_status,
 )
 from src.mcp_server.resources.trading_resources import get_trading_resource
 from src.mcp_server.models.schemas import StateManager
@@ -21,19 +21,19 @@ from .conftest import assert_success_response, assert_error_response
 @pytest.mark.asyncio
 class TestTradingResourceMirrorTools:
     """Test trading resource mirror tools provide identical functionality to resources."""
-    
+
     async def test_resource_account_info_matches_resource(self, real_api_test):
         """Ensure account info tool matches resource output."""
         # Get data from resource directly
         resource_result = await get_trading_resource("trading://account/info")
-        
+
         # Get data from mirror tool
         tool_result = await resource_account_info()
-        
+
         # Both should succeed
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
-        
+
         # Tool data should match resource data
         assert tool_result["data"] == resource_result["resource_data"]
         assert tool_result["metadata"]["source"] == "trading://account/info"
@@ -42,7 +42,7 @@ class TestTradingResourceMirrorTools:
         """Ensure positions tool matches resource output."""
         resource_result = await get_trading_resource("trading://account/positions")
         tool_result = await resource_account_positions()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -52,7 +52,7 @@ class TestTradingResourceMirrorTools:
         """Ensure orders tool matches resource output."""
         resource_result = await get_trading_resource("trading://account/orders")
         tool_result = await resource_account_orders()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -62,12 +62,13 @@ class TestTradingResourceMirrorTools:
         """Test portfolio summary tool with loaded portfolio data."""
         # Load some portfolio data first
         from src.mcp_server.tools.account_tools import get_account_info, get_positions
+
         await get_account_info()
         await get_positions()
-        
+
         resource_result = await get_trading_resource("trading://portfolio/summary")
         tool_result = await resource_portfolio_summary()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -76,10 +77,10 @@ class TestTradingResourceMirrorTools:
         """Test portfolio summary tool with no data."""
         # Clear state to ensure no data
         StateManager.clear_all()
-        
+
         resource_result = await get_trading_resource("trading://portfolio/summary")
         tool_result = await resource_portfolio_summary()
-        
+
         # Both should return error when no data
         assert_error_response(tool_result)
         assert "error" in resource_result
@@ -90,12 +91,13 @@ class TestTradingResourceMirrorTools:
         """Ensure portfolio entities tool matches resource output."""
         # Load some data first - need to initialize portfolio
         from src.mcp_server.tools.account_tools import get_account_info, get_positions
+
         await get_account_info()  # Initialize portfolio first
         await get_positions()
-        
+
         resource_result = await get_trading_resource("trading://portfolio/entities")
         tool_result = await resource_portfolio_entities()
-        
+
         # Both should succeed or both should fail consistently
         if "resource_data" in resource_result:
             assert_success_response(tool_result)
@@ -109,12 +111,13 @@ class TestTradingResourceMirrorTools:
         """Ensure active symbols tool matches resource output."""
         # Load some symbols first
         from src.mcp_server.tools.market_data_tools import get_stock_quote
+
         await get_stock_quote("AAPL")
         await get_stock_quote("MSFT")
-        
+
         resource_result = await get_trading_resource("trading://symbols/active")
         tool_result = await resource_symbols_active()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -123,7 +126,7 @@ class TestTradingResourceMirrorTools:
         """Ensure symbols count tool matches resource output."""
         resource_result = await get_trading_resource("trading://symbols/count")
         tool_result = await resource_symbols_count()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -132,7 +135,7 @@ class TestTradingResourceMirrorTools:
         """Ensure system health tool matches resource output."""
         resource_result = await get_trading_resource("trading://system/health")
         tool_result = await resource_system_health()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -141,7 +144,7 @@ class TestTradingResourceMirrorTools:
         """Ensure system memory tool matches resource output."""
         resource_result = await get_trading_resource("trading://system/memory")
         tool_result = await resource_system_memory()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -150,7 +153,7 @@ class TestTradingResourceMirrorTools:
         """Ensure system status tool matches resource output."""
         resource_result = await get_trading_resource("trading://system/status")
         tool_result = await resource_system_status()
-        
+
         assert_success_response(tool_result)
         assert "resource_data" in resource_result
         assert tool_result["data"] == resource_result["resource_data"]
@@ -167,9 +170,9 @@ class TestTradingResourceMirrorTools:
             resource_symbols_count,
             resource_system_health,
             resource_system_memory,
-            resource_system_status
+            resource_system_status,
         ]
-        
+
         # Verify all tools exist and are callable
         for tool_func in expected_tools:
             assert callable(tool_func), f"Tool {tool_func.__name__} is not callable"
@@ -178,10 +181,10 @@ class TestTradingResourceMirrorTools:
         """Verify error handling is consistent between tools and resources."""
         # Test with invalid resource path
         invalid_uri = "trading://invalid/resource"
-        
+
         resource_error = await get_trading_resource(invalid_uri)
         assert "error" in resource_error
-        
+
         # All mirror tools should handle errors consistently by converting
         # resource errors to tool error format with error_type field
 
@@ -194,9 +197,9 @@ class TestTradingResourceMirrorTools:
             (resource_symbols_count, "trading://symbols/count"),
             (resource_system_health, "trading://system/health"),
             (resource_system_memory, "trading://system/memory"),
-            (resource_system_status, "trading://system/status")
+            (resource_system_status, "trading://system/status"),
         ]
-        
+
         for tool_func, expected_source in tools_and_sources:
             result = await tool_func()
             assert_success_response(result)
@@ -208,7 +211,7 @@ class TestTradingResourceMirrorTools:
         """Verify resource errors are properly converted with error_type."""
         # Clear state to trigger no data error
         StateManager.clear_all()
-        
+
         result = await resource_portfolio_summary()
         assert_error_response(result)
         assert result["error_type"] == "ResourceError"
@@ -218,7 +221,7 @@ class TestTradingResourceMirrorTools:
         # Test account info structure
         account_result = await resource_account_info()
         assert_success_response(account_result)
-        
+
         account_data = account_result["data"]
         required_fields = ["account_id", "status", "buying_power", "portfolio_value"]
         for field in required_fields:
@@ -228,15 +231,16 @@ class TestTradingResourceMirrorTools:
         """Test mirror tools work correctly with loaded portfolio data."""
         # Load portfolio data
         from src.mcp_server.tools.account_tools import get_account_info, get_positions
+
         await get_account_info()
         await get_positions()
-        
+
         # Test portfolio-dependent tools
         portfolio_tools = [
             resource_portfolio_summary,
             resource_portfolio_entities,
         ]
-        
+
         for tool_func in portfolio_tools:
             result = await tool_func()
             assert_success_response(result)
@@ -252,16 +256,16 @@ class TestTradingResourceMirrorTools:
             resource_symbols_count,
             resource_system_health,
             resource_system_memory,
-            resource_system_status
+            resource_system_status,
         ]
-        
+
         for tool_func in all_tools:
             result = await tool_func()
-            
+
             # Must have status
             assert "status" in result
             assert result["status"] in ["success", "error"]
-            
+
             if result["status"] == "success":
                 # Success responses must have data and metadata
                 assert "data" in result
@@ -277,13 +281,13 @@ class TestTradingResourceMirrorTools:
         """Verify mirror tools automatically reflect resource changes."""
         # This test ensures that if resources change, mirrors automatically reflect
         # those changes without needing separate updates
-        
+
         # Get account info through both paths
         resource_result = await get_trading_resource("trading://account/info")
         tool_result = await resource_account_info()
-        
+
         # Should be identical (mirrors have zero maintenance overhead)
         assert tool_result["data"] == resource_result["resource_data"]
-        
+
         # Any resource changes should automatically appear in tool results
         # since tools just call resources internally

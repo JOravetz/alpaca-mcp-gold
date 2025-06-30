@@ -9,11 +9,12 @@ from ..models.schemas import StateManager, TradingEntityType, EntityRole
 
 logger = logging.getLogger(__name__)
 
+
 async def portfolio_first_look() -> Dict[str, Any]:
     """
     Adaptive prompt that provides initial portfolio exploration guidance.
     References actual portfolio data when available.
-    
+
     Returns:
         Prompt dict with context-aware content
     """
@@ -21,17 +22,29 @@ async def portfolio_first_look() -> Dict[str, Any]:
         # Get current portfolio state
         portfolio = StateManager.get_portfolio()
         symbols = StateManager.get_all_symbols()
-        
+
         if portfolio and len(portfolio.entities) > 0:
             # Portfolio exists - provide specific guidance
             entity_count = len(portfolio.entities)
-            portfolio_value = portfolio.portfolio_metrics.get('portfolio_value', 0)
-            
+            portfolio_value = portfolio.portfolio_metrics.get("portfolio_value", 0)
+
             # Analyze portfolio composition
-            positions = [e for e in portfolio.entities.values() if e.entity_type == TradingEntityType.POSITION]
-            volatile_assets = [e for e in portfolio.entities.values() if e.suggested_role == EntityRole.VOLATILE_ASSET]
-            growth_candidates = [e for e in portfolio.entities.values() if e.suggested_role == EntityRole.GROWTH_CANDIDATE]
-            
+            positions = [
+                e
+                for e in portfolio.entities.values()
+                if e.entity_type == TradingEntityType.POSITION
+            ]
+            volatile_assets = [
+                e
+                for e in portfolio.entities.values()
+                if e.suggested_role == EntityRole.VOLATILE_ASSET
+            ]
+            growth_candidates = [
+                e
+                for e in portfolio.entities.values()
+                if e.suggested_role == EntityRole.GROWTH_CANDIDATE
+            ]
+
             prompt_text = f"""I can see you have an active portfolio worth ${portfolio_value:,.2f} with **{entity_count} tracked entities**!
 
 Let me help you analyze your current holdings and explore opportunities:
@@ -42,17 +55,19 @@ Let me help you analyze your current holdings and explore opportunities:
 • **Cash Allocation:** {portfolio.portfolio_metrics.get('cash_allocation', 0)*100:.1f}%
 
 """
-            
+
             if volatile_assets:
                 symbols_list = [e.name for e in volatile_assets[:3]]
-                prompt_text += f"⚡ **High Volatility Assets:** {', '.join(symbols_list)}\n"
+                prompt_text += (
+                    f"⚡ **High Volatility Assets:** {', '.join(symbols_list)}\n"
+                )
                 prompt_text += "→ These positions may need closer monitoring\n\n"
-            
+
             if growth_candidates:
                 symbols_list = [e.name for e in growth_candidates[:3]]
                 prompt_text += f"🚀 **Growth Candidates:** {', '.join(symbols_list)}\n"
                 prompt_text += "→ These positions show positive momentum\n\n"
-            
+
             # Add actionable suggestions
             prompt_text += "**🎯 What would you like to explore?**\n"
             if len(positions) > 0:
@@ -61,16 +76,16 @@ Let me help you analyze your current holdings and explore opportunities:
                 prompt_text += "• **Portfolio Summary**: `get_portfolio_summary()` - Complete portfolio insights\n"
             prompt_text += "• **Market Research**: `get_stock_quote('SYMBOL')` - Research new opportunities\n"
             prompt_text += "• **Risk Management**: Set stop losses or take profits on existing positions\n"
-            
+
             if portfolio.suggested_operations:
                 prompt_text += "\n**💡 Recommendations:**\n"
                 for suggestion in portfolio.suggested_operations[:3]:
                     prompt_text += f"• {suggestion}\n"
-        
+
         elif symbols and len(symbols) > 0:
             # Some symbols tracked but no full portfolio
             symbol_names = list(symbols.keys())[:5]
-            
+
             prompt_text = f"""I can see you've been researching **{len(symbols)} symbols**: {', '.join(symbol_names)}
 
 Let's turn this research into actionable portfolio management:
@@ -79,7 +94,7 @@ Let's turn this research into actionable portfolio management:
 """
             for symbol, entity in list(symbols.items())[:3]:
                 prompt_text += f"• **{symbol}**: {entity.suggested_role.value.replace('_', ' ').title()}\n"
-            
+
             prompt_text += """
 **🎯 Next Steps:**
 • **Account Overview**: `get_account_info()` - Check your buying power
@@ -87,7 +102,7 @@ Let's turn this research into actionable portfolio management:
 • **Position Entry**: `place_limit_order()` - Execute trades on researched symbols
 • **Portfolio Building**: Start building positions in your analyzed symbols
 """
-        
+
         else:
             # No portfolio data - general guidance
             prompt_text = """Welcome to your Alpaca trading assistant! I'm here to help you manage your portfolio and execute trades.
@@ -115,21 +130,21 @@ Let's turn this research into actionable portfolio management:
 • Options strategies for income generation
 • Portfolio diversification and risk management
 """
-        
+
         return {
             "status": "success",
             "data": {
                 "prompt": prompt_text,
                 "name": "portfolio_first_look",
-                "description": "Get started with portfolio analysis and trading guidance"
+                "description": "Get started with portfolio analysis and trading guidance",
             },
             "metadata": {
                 "operation": "portfolio_first_look",
                 "context_aware": True,
-                "entity_count": len(portfolio.entities) if portfolio else 0
-            }
+                "entity_count": len(portfolio.entities) if portfolio else 0,
+            },
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating portfolio first look prompt: {e}")
         # Fallback to basic prompt
@@ -139,76 +154,89 @@ Let's turn this research into actionable portfolio management:
             "data": {
                 "prompt": "Let's start exploring your trading portfolio and market opportunities!",
                 "name": "portfolio_first_look",
-                "description": "Get started with portfolio analysis and trading guidance"
-            }
+                "description": "Get started with portfolio analysis and trading guidance",
+            },
         }
+
 
 async def trading_strategy_workshop(strategy_focus: str = "general") -> Dict[str, Any]:
     """
     Adaptive prompt for trading strategy guidance based on portfolio context.
-    
+
     Args:
         strategy_focus: Type of strategy to focus on ('growth', 'income', 'risk_management', 'general')
-    
+
     Returns:
         Prompt dict with strategy-specific guidance
     """
     try:
         portfolio = StateManager.get_portfolio()
-        
+
         # Base strategy guidance
         strategy_prompts = {
             "growth": {
                 "title": "Growth Trading Strategy Workshop",
-                "focus": "building positions in growth candidates and momentum stocks"
+                "focus": "building positions in growth candidates and momentum stocks",
             },
             "income": {
-                "title": "Income Generation Strategy Workshop", 
-                "focus": "generating consistent income through dividends and covered calls"
+                "title": "Income Generation Strategy Workshop",
+                "focus": "generating consistent income through dividends and covered calls",
             },
             "risk_management": {
                 "title": "Risk Management Strategy Workshop",
-                "focus": "protecting capital and managing downside risk"
+                "focus": "protecting capital and managing downside risk",
             },
             "general": {
                 "title": "Trading Strategy Workshop",
-                "focus": "developing a comprehensive trading approach"
-            }
+                "focus": "developing a comprehensive trading approach",
+            },
         }
-        
-        strategy_info = strategy_prompts.get(strategy_focus, strategy_prompts["general"])
-        
+
+        strategy_info = strategy_prompts.get(
+            strategy_focus, strategy_prompts["general"]
+        )
+
         prompt_text = f"""# {strategy_info['title']}
 
 Let's develop a strategic approach for {strategy_info['focus']}.
 
 """
-        
+
         # Add portfolio-specific context
         if portfolio and len(portfolio.entities) > 0:
-            positions = [e for e in portfolio.entities.values() if e.entity_type == TradingEntityType.POSITION]
-            portfolio_value = portfolio.portfolio_metrics.get('portfolio_value', 0)
-            
+            positions = [
+                e
+                for e in portfolio.entities.values()
+                if e.entity_type == TradingEntityType.POSITION
+            ]
+            portfolio_value = portfolio.portfolio_metrics.get("portfolio_value", 0)
+
             prompt_text += "**Your Current Portfolio Context:**\n"
             prompt_text += f"• Portfolio Value: ${portfolio_value:,.2f}\n"
             prompt_text += f"• Active Positions: {len(positions)}\n"
-            
+
             if strategy_focus == "growth":
-                growth_positions = [e for e in portfolio.entities.values() 
-                                 if e.suggested_role == EntityRole.GROWTH_CANDIDATE]
+                growth_positions = [
+                    e
+                    for e in portfolio.entities.values()
+                    if e.suggested_role == EntityRole.GROWTH_CANDIDATE
+                ]
                 if growth_positions:
                     symbols = [e.name for e in growth_positions[:3]]
                     prompt_text += f"• Current Growth Positions: {', '.join(symbols)}\n"
                     prompt_text += "→ We can build on these existing momentum plays\n\n"
-                
+
             elif strategy_focus == "risk_management":
-                volatile_positions = [e for e in portfolio.entities.values() 
-                                    if e.suggested_role == EntityRole.VOLATILE_ASSET]
+                volatile_positions = [
+                    e
+                    for e in portfolio.entities.values()
+                    if e.suggested_role == EntityRole.VOLATILE_ASSET
+                ]
                 if volatile_positions:
                     symbols = [e.name for e in volatile_positions[:3]]
                     prompt_text += f"• High-Risk Positions: {', '.join(symbols)}\n"
                     prompt_text += "→ These positions may need protective stops\n\n"
-        
+
         # Strategy-specific guidance
         if strategy_focus == "growth":
             prompt_text += """**🚀 Growth Strategy Framework:**
@@ -317,15 +345,15 @@ What aspect of this {strategy_focus} strategy would you like to explore first?""
             "data": {
                 "prompt": prompt_text,
                 "name": f"trading_strategy_{strategy_focus}",
-                "description": f"Strategic guidance for {strategy_focus} trading approach"
+                "description": f"Strategic guidance for {strategy_focus} trading approach",
             },
             "metadata": {
                 "operation": "trading_strategy_workshop",
                 "strategy_focus": strategy_focus,
-                "context_aware": True
-            }
+                "context_aware": True,
+            },
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating strategy workshop prompt: {e}")
         return {
@@ -334,49 +362,54 @@ What aspect of this {strategy_focus} strategy would you like to explore first?""
             "data": {
                 "prompt": "Let's develop a strategic approach to your trading and portfolio management!",
                 "name": "trading_strategy_workshop",
-                "description": "Trading strategy guidance and planning"
-            }
+                "description": "Trading strategy guidance and planning",
+            },
         }
+
 
 async def market_analysis_session() -> Dict[str, Any]:
     """
     Adaptive prompt for market analysis based on currently tracked symbols.
-    
+
     Returns:
         Prompt dict with market analysis guidance
     """
     try:
         symbols = StateManager.get_all_symbols()
         StateManager.get_portfolio()
-        
+
         if symbols and len(symbols) > 0:
             # Provide analysis on tracked symbols
             symbol_names = list(symbols.keys())[:5]
-            
+
             prompt_text = f"""# Market Analysis Session
 
 Let's dive deep into the market data for your tracked symbols and discover new opportunities.
 
 **📊 Currently Tracking {len(symbols)} Symbols:**
 """
-            
+
             # Analyze each tracked symbol
             for symbol, entity in list(symbols.items())[:5]:
                 characteristics = entity.characteristics
-                role = entity.suggested_role.value.replace('_', ' ').title()
-                
+                role = entity.suggested_role.value.replace("_", " ").title()
+
                 prompt_text += f"""
 **{symbol}** - {role}
 """
-                if 'latest_price' in characteristics:
-                    prompt_text += f"• Current Price: ${characteristics['latest_price']:.2f}\n"
-                if 'price_change_percent' in characteristics:
-                    change = characteristics['price_change_percent']
+                if "latest_price" in characteristics:
+                    prompt_text += (
+                        f"• Current Price: ${characteristics['latest_price']:.2f}\n"
+                    )
+                if "price_change_percent" in characteristics:
+                    change = characteristics["price_change_percent"]
                     direction = "📈" if change > 0 else "📉"
                     prompt_text += f"• Daily Change: {direction} {change:.2f}%\n"
-                if 'volatility' in characteristics:
-                    prompt_text += f"• Volatility: {characteristics['volatility']:.1f}%\n"
-            
+                if "volatility" in characteristics:
+                    prompt_text += (
+                        f"• Volatility: {characteristics['volatility']:.1f}%\n"
+                    )
+
             prompt_text += f"""
 
 **🔍 Recommended Analysis:**
@@ -385,7 +418,7 @@ Let's dive deep into the market data for your tracked symbols and discover new o
 • Compare performance across your watchlist symbols
 • Identify correlation patterns between holdings
 """
-            
+
         else:
             # General market analysis guidance
             prompt_text = """# Market Analysis Session
@@ -406,7 +439,7 @@ Let's explore the markets and identify trading opportunities using comprehensive
 
 **🎯 Analysis Strategies:**
 """
-        
+
         prompt_text += """
 **Technical Analysis Framework:**
 • **Trend Identification**: Use 20/50/200 moving averages
@@ -443,36 +476,31 @@ Let's explore the markets and identify trading opportunities using comprehensive
             "name": "market_analysis_session",
             "description": "Comprehensive market analysis and research guidance",
             "messages": [
-                {
-                    "role": "user",
-                    "content": {
-                        "type": "text",
-                        "text": prompt_text
-                    }
-                }
-            ]
+                {"role": "user", "content": {"type": "text", "text": prompt_text}}
+            ],
         }
-        
+
     except Exception as e:
         logger.error(f"Error generating market analysis prompt: {e}")
         return {
-            "name": "market_analysis_session", 
+            "name": "market_analysis_session",
             "description": "Market analysis and research guidance",
             "messages": [
                 {
                     "role": "user",
                     "content": {
                         "type": "text",
-                        "text": "Let's analyze market data and identify trading opportunities!"
-                    }
+                        "text": "Let's analyze market data and identify trading opportunities!",
+                    },
                 }
-            ]
+            ],
         }
+
 
 async def list_mcp_capabilities() -> Dict[str, Any]:
     """
     Prompt that explains all available MCP tools and resources.
-    
+
     Returns:
         Prompt dict with comprehensive capability overview
     """
@@ -583,12 +611,6 @@ What would you like to explore first?"""
         "name": "list_mcp_capabilities",
         "description": "Complete overview of all MCP server capabilities and tools",
         "messages": [
-            {
-                "role": "user",
-                "content": {
-                    "type": "text",
-                    "text": prompt_text
-                }
-            }
-        ]
+            {"role": "user", "content": {"type": "text", "text": prompt_text}}
+        ],
     }

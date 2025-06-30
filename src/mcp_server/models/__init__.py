@@ -5,13 +5,13 @@ from .schemas import (
     EntityRole,
     EntityInfo,
     TradingPortfolioSchema,
-    StateManager
+    StateManager,
 )
 
 __all__ = [
     "TradingEntityType",
-    "EntityRole", 
+    "EntityRole",
     "EntityInfo",
     "TradingPortfolioSchema",
-    "StateManager"
+    "StateManager",
 ]
